@@ -271,6 +271,9 @@ class Parser:
     def parser_identifier(self):
         self.match("IDENTIFIER")
 
+    def parser_string_literal(self):
+        self.match("STRING_LITERAL")
+
     def parser_literal(self):
         if self.token_atual.tipo in ["INTEGER_LITERAL", "REAL_LITERAL", "BOOL_LITERAL"]:
             self.match(self.token_atual.tipo)
