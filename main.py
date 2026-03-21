@@ -1,4 +1,5 @@
 from lexer import Lexer, LexicalError
+from parser import Parser, AST
 import sys
 
 

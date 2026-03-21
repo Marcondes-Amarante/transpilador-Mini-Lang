@@ -1,0 +1,46 @@
+from enum import Enum
+
+class TokenType(str, Enum):
+    # Palavras reservadas
+    DEF = "DEF"
+    WHILE = "WHILE"
+    IF = "IF"
+    RETURN = "RETURN"
+    PRINT = "PRINT"
+    INT_TYPE = "INT_TYPE"
+    REAL_TYPE = "REAL_TYPE"
+    BOOL_TYPE = "BOOL_TYPE"
+    VOID_TYPE = "VOID_TYPE"
+    VAR = "VAR"
+    SET = "SET"
+    NOT = "NOT"
+    OR = "OR"
+    AND = "AND"
+    BOOLEAN_LITERAL = "BOOLEAN_LITERAL"
+    INTEGER_LITERAL = "INTEGER_LITERAL"
+    REAL_LITERAL = "REAL_LITERAL"
+    STRING_LITERAL = "STRING_LITERAL"
+    IDENTIFIER = "IDENTIFIER    '"
+    # Operadores
+    PLUS = "PLUS"
+    MINUS = "MINUS"
+    MULTIPLY = "MULTIPLY"
+    DIVIDE = "DIVIDE"
+    ASSIGN = "ASSIGN"
+    #Operadores relacionais
+    LESS = "LESS"
+    GREATER = "GREATER"
+    EQUAL = "EQUAL"
+    NOT_EQUAL = "NOT_EQUAL"
+    LESS_EQUAL = "LESS_EQUAL"
+    GREATER_EQUAL = "GREATER_EQUAL"
+    # Delimitadores
+    LBRACE = "LBRACE"
+    RBRACE = "RBRACE"
+    LPAREN = "LPAREN"
+    RPAREN = "RPAREN"
+    COLON = "COLON"
+    SEMICOLON = "SEMICOLON"
+    COMMA = "COMMA"
+    
+    EOF = "EOF"

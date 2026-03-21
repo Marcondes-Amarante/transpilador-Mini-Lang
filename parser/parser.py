@@ -1,18 +1,12 @@
-class AST:
-    def __init__(self, raiz):
-        self.raiz = raiz
-
-class No:
-    def __init__(self, valor, tipo):
-        self.tipo = tipo
-        self.valor = valor
-        self.filhos = []
+from lexer import Token
+from .ast import AST
 
 class Parser:
-    def __init__(self, tokens):
+    def __init__(self, tokens: list[Token]):
         self.tokens = tokens
         self.pos = 0
         self.token_atual = self.tokens[0]
+        self__ast: AST = AST()
 
     #tokens[0]: <ID, numero>
 

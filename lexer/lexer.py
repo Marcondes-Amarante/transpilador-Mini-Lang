@@ -1,66 +1,5 @@
 from .lexical_error import LexicalError
-
-
-RESERVED_KEYWORDS: dict[str, str] = {
-    "def": "DEF",
-    "while": "WHILE",
-    "if": "IF",
-    "return": "RETURN",
-    "print": "PRINT",
-    "int": "INT_TYPE",
-    "real": "REAL_TYPE",
-    "bool": "BOOL_TYPE",
-    "void": "VOID_TYPE",
-    "var": "VAR",
-    "set": "SET",
-    "not": "NOT",
-    "or": "OR",
-    "and": "AND",
-    "true": "BOOLEAN_LITERAL",
-    "false": "BOOLEAN_LITERAL",
-}
-
-ARITHMETIC_OPERATOS: dict[str, str] = {
-    "+": "PLUS",
-    "-": "MINUS",
-    "*": "MULTIPLY",
-    "/": "DIVIDE",
-}
-
-DELIMITERS: dict[str, str] = {
-    "{": "LBRACE",
-    "}": "RBRACE",
-    "(": "LPAREN",
-    ")": "RPAREN",
-    ":": "COLON",
-    ";": "SEMICOLON",
-    ",": "COMMA",
-}
-
-
-class Token:
-    def __init__(self, tipo: str, valor: str, linha: int):
-        self.__tipo: str = tipo
-        self.__valor: str = valor
-        self.__linha: int = linha
-
-    @property
-    def tipo(self) -> str:
-        return self.__tipo
-
-    @property
-    def valor(self) -> str:
-        return self.__valor
-
-    @property
-    def linha(self) -> int:
-        return self.__linha
-
-    def __repr__(self) -> str:
-        return f"Token({self.__tipo}, {self.__valor}, {self.__linha})"
-
-    def __str__(self) -> str:
-        return f"<{self.__tipo}, {self.__valor}>"
+from .token import Token, TokenType, ARITHMETIC_OPERATORS, DELIMITERS, RESERVED_KEYWORDS
 
 
 class Lexer:
@@ -130,11 +69,11 @@ class Lexer:
                 while self.__chr_atual and self.__chr_atual.isdigit():
                     result += self.__chr_atual
                     self.__avancar()
-                return Token("REAL_LITERAL", result, self.__linha)
+                return Token(TokenType.REAL_LITERAL, result, self.__linha)
             else:
                 raise LexicalError("Caractere real mal formatado", self.__linha)
         else:
-            return Token("INTEGER_LITERAL", result, self.__linha)
+            return Token(TokenType.INTEGER_LITERAL, result, self.__linha)
 
     # Recupera literal string
     def __read_string(self) -> Token:
@@ -150,7 +89,7 @@ class Lexer:
                 self.__avancar()
             elif self.__chr_atual is None:
                 raise LexicalError(f"Delimitador de string não fechado", self.__linha)
-            return Token("STRING_LITERAL", result, self.__linha)
+            return Token(TokenType.STRING_LITERAL, result, self.__linha)
 
     # recupera identificadores, palavras reservadas, tipos, literal booleanos, operador NOT, OR e AND
     def __read_identifier(self) -> Token:
@@ -168,7 +107,7 @@ class Lexer:
         if result in RESERVED_KEYWORDS:
             return Token(RESERVED_KEYWORDS[result], result, self.__linha)
         else:
-            return Token("IDENTIFIER", result, self.__linha)
+            return Token(TokenType.IDENTIFIER, result, self.__linha)
 
     # despachante:
     def __get_next_token(self) -> Token:
@@ -198,16 +137,16 @@ class Lexer:
                 if self.__lookahead() == "=":
                     self.__avancar()
                     self.__avancar()
-                    return Token("EQUAL", "==", self.__linha)
+                    return Token(TokenType.EQUAL, "==", self.__linha)
                 else:
                     self.__avancar()
-                    return Token("ASSIGN", "=", self.__linha)
+                    return Token(TokenType.ASSIGN, "=", self.__linha)
 
             if self.__chr_atual == "!":
                 if self.__lookahead() == "=":
                     self.__avancar()
                     self.__avancar()
-                    return Token("NOT_EQUAL", "!=", self.__linha)
+                    return Token(TokenType.NOT_EQUAL, "!=", self.__linha)
                 else:
                     raise LexicalError("Operador inválido (!)", self.__linha)
 
@@ -215,27 +154,27 @@ class Lexer:
                 if self.__lookahead() == "=":
                     self.__avancar()
                     self.__avancar()
-                    return Token("GREATER_EQUAL", ">=", self.__linha)
+                    return Token(TokenType.GREATER_EQUAL, ">=", self.__linha)
                 else:
                     self.__avancar()
-                    return Token("GREATER", ">", self.__linha)
+                    return Token(TokenType.GREATER, ">", self.__linha)
 
             if self.__chr_atual == "<":
                 if self.__lookahead() == "=":
                     self.__avancar()
                     self.__avancar()
-                    return Token("LESS_EQUAL", "<=", self.__linha)
+                    return Token(TokenType.LESS_EQUAL, "<=", self.__linha)
                 else:
                     self.__avancar()
-                    return Token("LESS", "<", self.__linha)
+                    return Token(TokenType.LESS, "<", self.__linha)
 
             # trantando operadores aritmétricos simples
             # + - * /
-            if self.__chr_atual in ARITHMETIC_OPERATOS:
+            if self.__chr_atual in ARITHMETIC_OPERATORS:
                 result = self.__chr_atual
                 linha = self.__linha
                 self.__avancar()
-                return Token(ARITHMETIC_OPERATOS[result], result, linha)
+                return Token(ARITHMETIC_OPERATORS[result], result, linha)
 
             # tratando delimitadores
             if self.__chr_atual in DELIMITERS:
@@ -247,12 +186,12 @@ class Lexer:
             # trantando caracteres inválidos
             raise LexicalError(f"Caractere inválido ({self.__chr_atual})", self.__linha)
 
-        return Token("EOF", None, self.__linha)
+        return Token(TokenType.EOF, None, self.__linha)
 
     def __get_token_list(self) -> list[Token]:
         tokens: list[Token] = []
         token: Token = self.__get_next_token()
-        while token.tipo != "EOF":
+        while token.tipo != TokenType.EOF:
             tokens.append(token)
             token = self.__get_next_token()
         return tokens
