@@ -6,7 +6,7 @@
 #var erro_num: real = 10.;
 
 # 3. Erro de String Não Fechada (EOF antes da aspa de fechamento)
-#print "Esqueci de fechar essa string
+print "Esqueci de fechar essa string
 
 # 4. Ambiguidade de Operadores (Grudados sem espaço)
 if(x==5)set y=x!=z;

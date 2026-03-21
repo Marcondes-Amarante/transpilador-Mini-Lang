@@ -1,6 +1,7 @@
 from lexer import Lexer
+import sys
 
-def carregar_arquivo(caminho_codigo):
+def carregar_arquivo(caminho_codigo) -> str:
     try:
         with open(caminho_codigo, 'r', encoding='utf=8') as codigo_fonte:
             return codigo_fonte.read()
@@ -9,19 +10,18 @@ def carregar_arquivo(caminho_codigo):
         return None
     
 def main():
-    codigo_fonte = carregar_arquivo("testes/testeErros.txt")
+    args_list: list[str] = sys.argv 
+    if len(args_list) < 2:
+        print("Uso: python main.py <codigo_fonte>.txt")
+        return
+    caminho: str = args_list[1] 
+    codigo_fonte: str = carregar_arquivo(caminho)
+    if not codigo_fonte:
+        raise Exception("Arquivo fonte vazio")
+    
+    lexer: Lexer = Lexer(codigo_fonte)
+    lexer.printTokens()
 
-    if codigo_fonte:
-        tokens = []
-        lexer = Lexer(codigo_fonte)
-
-        token = lexer.get_next_token()
-        while token.tipo != "EOF":
-            tokens.append(token)
-            token = lexer.get_next_token()
-        
-        for token in tokens:
-            print(f"<{token.tipo}, {token.valor}>")
-
+    
 if __name__ == "__main__":
     main()
