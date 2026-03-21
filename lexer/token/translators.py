@@ -14,6 +14,7 @@ RESERVED_KEYWORDS: dict[str, TokenType] = {
     "def": TokenType.DEF,
     "while": TokenType.WHILE,
     "if": TokenType.IF,
+    "else": TokenType.ELSE,
     "return": TokenType.RETURN,
     "print": TokenType.PRINT,
     "int": TokenType.INT_TYPE,

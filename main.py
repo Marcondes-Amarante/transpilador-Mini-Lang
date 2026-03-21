@@ -1,5 +1,5 @@
 from lexer import Lexer, LexicalError
-from parser import Parser, AST
+from parser import Parser, MiniLangSyntaxError
 import sys
 
 
@@ -10,12 +10,20 @@ def main():
         return
     caminho: str = args_list[1]
     codigo_fonte: str = carregar_arquivo(caminho)
+    
     if not codigo_fonte:
         raise Exception("Arquivo fonte vazio")
+    
     try:
         lexer: Lexer = Lexer(codigo_fonte)
         lexer.printTokens()
+        parser: Parser = Parser(lexer.tokens)
+        parser.ast.print_tree()
     except LexicalError as e:
+        print(e)
+    except MiniLangSyntaxError as e:
+        print(e)
+    except Exception as e:
         print(e)
 
 

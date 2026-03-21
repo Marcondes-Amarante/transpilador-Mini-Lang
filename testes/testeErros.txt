@@ -1,6 +1,6 @@
 # 1. Erro de Símbolo Inválido (O alfabeto da Mini-Lang não possui @ ou $)
-var email: string = "user@ufca.edu.br"; 
-#set preco = 100$;
+#var email: string = "user@ufca.edu.br"; 
+set preco = 100;
 
 # 2. Erro de Número Real Malformado (Ponto sem dígitos depois)
 #var erro_num: real = 10.;
@@ -9,4 +9,4 @@ var email: string = "user@ufca.edu.br";
 #print "Esqueci de fechar essa string
 
 # 4. Ambiguidade de Operadores (Grudados sem espaço)
-if(x==5)set y=x!=z;
+#if(x==5)set y=x!=z;

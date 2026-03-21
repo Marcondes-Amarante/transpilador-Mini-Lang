@@ -1,6 +1,7 @@
-from .parser import AST, Parser
+from .parser import AST, Parser, MiniLangSyntaxError
 
 __all__ = [
     "AST",
-    "Parser"
+    "Parser",
+    "MiniLangSyntaxError"
 ]

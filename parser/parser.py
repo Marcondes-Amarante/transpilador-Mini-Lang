@@ -1,277 +1,463 @@
-from lexer import Token
+from lexer import Token, TokenType
+from .sintaxe_error import MiniLangSyntaxError
+from .node import Node, NodeType
 from .ast import AST
+
 
 class Parser:
     def __init__(self, tokens: list[Token]):
-        self.tokens = tokens
-        self.pos = 0
-        self.token_atual = self.tokens[0]
-        self__ast: AST = AST()
+        self._tokens: list[Token] = tokens
+        self.__pos: int = 0
+        self.__token_atual: Token = self._tokens[0]
+        self.__ast: AST = AST(self.__parser_program())
 
-    #tokens[0]: <ID, numero>
+    @property
+    def ast(self) -> AST:
+        return self.__ast
 
-    #consumir token
-    def match(self, tipo):
-        if self.token_atual and self.token_atual.tipo == tipo:
-            self.pos += 1
-            if self.pos < len(self.tokens):
-                self.token_atual = self.tokens[self.pos]
+    # consumir token
+    def __match(self, tipo: TokenType) -> None:
+        if self.__token_atual and self.__token_atual.tipo == tipo:
+            self.__pos += 1
+            if self.__pos < len(self._tokens):
+                self.__token_atual = self._tokens[self.__pos]
             else:
-                self.token_atual = None
+                self.__token_atual = None
         else:
-            if self.token_atual.tipo:
-                tipo_token = self.token_atual.tipo
+            if self.__token_atual is not None:
+                tipo_token = self.__token_atual.tipo
+                linha = self.__token_atual.linha
             else:
-                tipo_token = "EOF"
-            raise Exception(f"token do tipo: {tipo} esperado, recebeu: {tipo_token}")
+                tipo_token = TokenType.EOF
+                linha = -1
+            raise MiniLangSyntaxError(
+                f"Token do tipo {tipo.value} era esperado, recebeu: {tipo_token.value}",
+                linha,
+            )
 
-    #retornar próximo token da lista sem consumi-lo
-    def lookahead(self):
-        pos_prox_token = self.pos + 1
-        if pos_prox_token < len(self.tokens):
-            return self.tokens[pos_prox_token]
+    # retornar próximo token da lista sem consumi-lo
+    def __lookahead(self) -> Token | None:
+        pos_prox_token: int = self.__pos + 1
+        if pos_prox_token < len(self._tokens):
+            return self._tokens[pos_prox_token]
         else:
             return None
 
-    #funções de parser para cada uma das regras da estrutura EBNF
-    #padrão EBNF: {} -> while, [] -> if, () -> if, elif, else
-    def parser_program(self):
+    # funções de parser para cada uma das regras da estrutura EBNF
+    # padrão EBNF: {} -> while, [] -> if, () -> if, elif, else
+    def __parser_program(self) -> Node:
+        node = Node(NodeType.PROGRAM)
+        while self.__token_atual is not None:
+            stmt = self.__parser_statement()
+            if stmt is not None:
+                node.add_filho(stmt)
+        return node
 
-        statements = []
-        while self.token_atual is not None:
-            statements.append(self.parser_statement())
-    
-    def parser_block(self):
-        self.match("LBRACE")
+    def __parser_block(self) -> Node:
+        node = Node(NodeType.BLOCK)
 
-        statements = []
-        while self.token_atual and self.token_atual.tipo != "RBRACE":
-            statements.append(self.parser_statement())
+        self.__match(TokenType.LBRACE)
+        while self.__token_atual and self.__token_atual.tipo != TokenType.RBRACE:
+            stmt = self.__parser_statement()
+            if stmt is not None:
+                node.add_filho(stmt)
+        self.__match(TokenType.RBRACE)
 
-        self.match("RBRACE")
+        return node
 
-    def parser_statement(self):
-        if self.token_atual.tipo == "VAR":
-            self.parser_variable_decl()
-            self.match("SEMICOLON")
-        elif self.token_atual.tipo == "SET":
-            self.parser_assignment()
-            self.match("SEMICOLON")
-        elif self.token_atual.tipo == "PRINT":
-            self.parser_print_statement()
-            self.match("SEMICOLON")
-        elif self.token_atual.tipo == "IF":
-            self.parser_if_statement()
-        elif self.token_atual.tipo == "WHILE":
-            self.parser_while_statement()
-        elif self.token_atual.tipo == "RETURN":
-            self.parser_return_statement()
-            self.match("SEMICOLON")
-        elif self.token_atual.tipo == "DEF":
-            self.parser_function_decl()
-        elif self.token_atual.tipo == "LBRACE":
-            self.parser_block()
+    def __parser_statement(self) -> Node:
+        match self.__token_atual.tipo:
+            case TokenType.VAR:
+                node = self.__parser_variable_decl()
+                self.__match(TokenType.SEMICOLON)
+                return node
+            case TokenType.SET:
+                node = self.__parser_assignment()
+                self.__match(TokenType.SEMICOLON)
+                return node
+            case TokenType.PRINT:
+                node = self.__parser_print_statement()
+                self.__match(TokenType.SEMICOLON)
+                return node
+            case TokenType.IF:
+                return self.__parser_if_statement()
+            case TokenType.WHILE:
+                return self.__parser_while_statement()
+            case TokenType.RETURN:
+                node = self.__parser_return_statement()
+                self.__match(TokenType.SEMICOLON)
+                return node
+            case TokenType.DEF:
+                return self.__parser_function_decl()
+            case TokenType.LBRACE:
+                return self.__parser_block()
+            case _:
+                raise MiniLangSyntaxError(
+                    f"Statement inesperado: {self.__token_atual.tipo.name}",
+                    self.__token_atual.linha,
+                )
 
-    # <DEF, def> <IDENTIFIER, calcular> <LPAREN, (> 
+    # <DEF, def> <IDENTIFIER, calcular> <LPAREN, (>
 
-    def parser_function_decl(self):
-        self.match("DEF")
-        self.parser_identifier()
+    def __parser_function_decl(self) -> Node:
+        node = Node(NodeType.FUNCTION_DECL)
 
-        self.match("LPAREN")
-        if self.token_atual.tipo == "IDENTIFIER":
-            self.parser_formal_params()
-        self.match("RPAREN")
-        
-        self.match("COLON")
-        self.parser_type()
-        self.parser_block()
+        self.__match(TokenType.DEF)
+        node.add_filho(self.__parser_identifier())
+        self.__match(TokenType.LPAREN)
 
-    def parser_formal_params(self):
-        self.parser_formal_param()
+        if self.__token_atual.tipo == TokenType.IDENTIFIER:
+            node.add_filho(self.__parser_formal_params())
 
-        parametros = []
-        while self.token_atual and self.token_atual.tipo != "RPAREN":
-            self.match("COMMA")
-            parametros.append(self.parser_formal_param())
+        self.__match(TokenType.RPAREN)
+        self.__match(TokenType.COLON)
 
-    def parser_formal_param(self):
-        self.parser_identifier()
-        self.match("COLON")
-        self.parser_type()
-    
-    def parser_while_statement(self):
-        self.match("WHILE")
-        self.match("LPAREN")
-        self.parser_expression()
-        self.match("RPAREN")
-        self.parser_block()
-    
-    def parser_if_statement(self):
-        self.match("IF")
-        
-        self.match("LPAREN")
-        self.parser_expression()
-        self.match("RPAREN")
+        node.add_filho(self.__parser_type())
+        node.add_filho(self.__parser_block())
 
-        self.parser_block()
+        return node
 
-        if self.token_atual and self.token_atual.tipo == "ELSE":
-            self.match("ELSE")
-            self.parser_block()
+    def __parser_formal_params(self) -> Node:
+        node = Node(NodeType.PARAM_LIST)
 
-    def parser_return_statement(self):
-        self.match("RETURN")
-        self.parser_expression()
+        node.add_filho(self.__parser_formal_param())
+        while self.__token_atual and self.__token_atual.tipo != TokenType.RPAREN:
+            self.__match(TokenType.COMMA)
+            node.add_filho(self.__parser_formal_param())
 
-    def parser_print_statement(self):
-        self.match("PRINT")
-        self.parser_string_literal()
+        return node
 
-    #int | real | bool | void
-    def parser_type(self):
-        if self.token_atual.tipo == "INT_TYPE":
-            self.match("INT_TYPE")
-        elif self.token_atual.tipo == "REAL_TYPE":
-            self.match("REAL_TYPE")
-        elif self.token_atual.tipo == "BOOL_TYPE":
-            self.match("BOOL_TYPE")
-        elif self.token_atual.tipo == "VOID_TYPE":
-            self.match("VOID_TYPE")
-    
-    def parser_variable_decl(self):
-        self.match("VAR")
-        self.parser_identifier()
-        self.match("COLON")
-        self.parser_type()
-        self.match("ASSIGN")
-        self.parser_expression()
+    def __parser_formal_param(self) -> Node:
+        node = Node(NodeType.PARAM)
 
-    def parser_assignment(self):
-        self.match("SET")
-        self.parser_identifier()
-        self.match("ASSIGN")
-        self.parser_expression()
+        node.add_filho(self.__parser_identifier())
+        self.__match(TokenType.COLON)
+        node.add_filho(self.__parser_type())
 
-    def parser_expression(self):
-        self.parser_simple_expression()
+        return node
 
-        relational_op = ["LESS", "GREATER", "EQUAL", "NOT_EQUAL", "LESS_EQUAL", "GREATER_EQUAL"]
+    def __parser_while_statement(self) -> Node:
+        node = Node(NodeType.WHILE_STMT)
 
-        while self.token_atual and self.token_atual.tipo in relational_op:
-            self.parser_relational_op()
-            self.parser_simple_expression()
+        self.__match(TokenType.WHILE)
+        self.__match(TokenType.LPAREN)
+        node.add_filho(self.__parser_expression())
+        self.__match(TokenType.RPAREN)
+        node.add_filho(self.__parser_block())
 
-    def parser_simple_expression(self):
-        self.parser_term()
+        return node
 
-        aditive_op = ["PLUS", "MINUS", "OR"]
+    def __parser_if_statement(self) -> Node:
+        node = Node(NodeType.IF_STMT)
 
-        while self.token_atual and self.token_atual.tipo in aditive_op:
-            self.parser_aditive_op()
-            self.parser_term()
-    
-    def parser_term(self):
-        self.parser_factor()
+        self.__match(TokenType.IF)
+        self.__match(TokenType.LPAREN)
+        node.add_filho(self.__parser_expression())
+        self.__match(TokenType.RPAREN)
 
-        multiplicative_op = ["MULTIPLY", "DIVIDE", "AND"]
+        node.add_filho(self.__parser_block())
 
-        while self.token_atual and self.token_atual.tipo in multiplicative_op:
-            self.parser_multiplicative_op()
-            self.parser_factor()
-        
-    def parser_factor(self):
+        if self.__token_atual and self.__token_atual.tipo == TokenType.ELSE:
+            self.__match(TokenType.ELSE)
+            node.add_filho(self.__parser_block())
 
-        if self.token_atual.tipo in ["INTEGER_LITERAL", "REAL_LITERAL", "BOOLEAN_LITERAL"]:
-            self.parser_literal()
-        
-        if self.token_atual.tipo == "IDENTIFIER":
+        return node
 
-            if self.lookahead() and self.lookahead().tipo == "LPAREN":
-                self.parser_function_call()
+    def __parser_return_statement(self) -> Node:
+        node = Node(NodeType.RETURN_STMT)
+
+        self.__match(TokenType.RETURN)
+        node.add_filho(self.__parser_expression())
+
+        return node
+
+    def __parser_print_statement(self) -> Node:
+        node = Node(NodeType.PRINT_STMT)
+
+        self.__match(TokenType.PRINT)
+        if self.__token_atual and self.__token_atual.tipo == TokenType.STRING_LITERAL:
+            node.add_filho(self.__parser_string_literal())
+        else:
+            node.add_filho(self.__parser_expression())
+
+        return node
+
+    # int | real | bool | void
+    def __parser_type(self) -> Node:
+        node = Node(NodeType.TYPE_STMT)
+
+        token = self.__token_atual
+        match token.tipo:
+            case TokenType.INT_TYPE:
+                self.__match(TokenType.INT_TYPE)
+            case TokenType.REAL_TYPE:
+                self.__match(TokenType.REAL_TYPE)
+            case TokenType.BOOL_TYPE:
+                self.__match(TokenType.BOOL_TYPE)
+            case TokenType.VOID_TYPE:
+                self.__match(TokenType.VOID_TYPE)
+            case _:
+                raise MiniLangSyntaxError(
+                    f"Tipo inválido: {token.tipo.name}", token.linha
+                )
+        node.valor = token
+
+        return node
+
+    def __parser_variable_decl(self) -> Node:
+        node = Node(NodeType.VAR_DECL)
+
+        self.__match(TokenType.VAR)
+        node.add_filho(self.__parser_identifier())
+        self.__match(TokenType.COLON)
+        node.add_filho(self.__parser_type())
+        self.__match(TokenType.ASSIGN)
+        node.add_filho(self.__parser_expression())
+
+        return node
+
+    def __parser_assignment(self) -> Node:
+        node = Node(NodeType.ASSIGN_STMT)
+
+        self.__match(TokenType.SET)
+        node.add_filho(self.__parser_identifier())
+        self.__match(TokenType.ASSIGN)
+        node.add_filho(self.__parser_expression())
+
+        return node
+
+    def __parser_expression(self) -> Node:
+        left = self.__parser_simple_expression()
+
+        relational_ops = {
+            TokenType.LESS,
+            TokenType.GREATER,
+            TokenType.EQUAL,
+            TokenType.NOT_EQUAL,
+            TokenType.LESS_EQUAL,
+            TokenType.GREATER_EQUAL,
+        }
+        while self.__token_atual and self.__token_atual.tipo in relational_ops:
+            token = self.__token_atual
+            self.__match(token.tipo)
+
+            right = self.__parser_simple_expression()
+            node = Node(NodeType.BINARY_OP)
+            node.valor = token
+            node.add_filho(left)
+            node.add_filho(right)
+            left = node
+
+        return left
+
+    def __parser_simple_expression(self) -> Node:
+        left = self.__parser_term()
+
+        while self.__token_atual and self.__token_atual.tipo in {
+            TokenType.PLUS,
+            TokenType.MINUS,
+            TokenType.OR,
+        }:
+            token = self.__token_atual
+            self.__match(token.tipo)
+
+            right = self.__parser_term()
+            node = Node(NodeType.BINARY_OP)
+            node.valor = token
+            node.add_filho(left)
+            node.add_filho(right)
+            left = node
+
+        return left
+
+    def __parser_term(self) -> Node:
+        left = self.__parser_factor()
+
+        while self.__token_atual and self.__token_atual.tipo in {
+            TokenType.MULTIPLY,
+            TokenType.DIVIDE,
+            TokenType.AND,
+        }:
+            token = self.__token_atual
+            self.__match(token.tipo)
+
+            right = self.__parser_factor()
+            node = Node(NodeType.BINARY_OP)
+            node.valor = token
+            node.add_filho(left)
+            node.add_filho(right)
+            left = node
+
+        return left
+
+    def __parser_factor(self) -> Node:
+        token = self.__token_atual
+
+        if token.tipo in {
+            TokenType.INTEGER_LITERAL,
+            TokenType.REAL_LITERAL,
+            TokenType.BOOLEAN_LITERAL,
+        }:
+            return self.__parser_literal()
+
+        elif token.tipo == TokenType.IDENTIFIER:
+            if self.__lookahead() and self.__lookahead().tipo == TokenType.LPAREN:
+                return self.__parser_function_call()
             else:
-                self.parser_identifier()
+                return self.__parser_identifier()
 
-        if self.token_atual.tipo == "LPAREN":
-            self.parser_sub_expression()
-        
-        if self.token_atual.tipo in ["PLUS", "MINUS", "NOT"]:
-            self.parser_unary()
-    
-    def parser_unary(self):
-        if self.token_atual.tipo == "PLUS":
-            self.match("PLUS")
-        elif self.token_atual.tipo == "MINUS":
-            self.match("MINUS")
-        elif self.token_atual.tipo == "NOT":
-            self.match("NOT")
+        elif token.tipo == TokenType.LPAREN:
+            return self.__parser_sub_expression()
 
-        #duvida: <expression> ou { <expression> } ou <factor>?
-        self.parser_factor()
-    
-    def parser_sub_expression(self):
-        self.match("LPAREN")
-        self.parser_expression()
-        self.match("RPAREN")
-    
-    def parser_function_call(self):
-        self.parser_identifier()
-        
-        self.match("LPAREN")
+        elif token.tipo in {
+            TokenType.PLUS,
+            TokenType.MINUS,
+            TokenType.NOT,
+        }:
+            return self.__parser_unary()
 
-        actual_param = []
-        if self.token_atual and self.token_atual.tipo != "RPAREN":
-            actual_param.append(self.parser_actual_params())
+        else:
+            raise MiniLangSyntaxError(
+                f"Factor inválido: {token.tipo.name}", token.linha
+            )
 
-        self.match("RPAREN")
-    
-    def parser_actual_params(self):
-        self.parser_expression()
+    def __parser_unary(self) -> Node:
+        token = self.__token_atual
+        if token.tipo in {
+            TokenType.PLUS,
+            TokenType.MINUS,
+            TokenType.NOT,
+        }:
+            self.__match(token.tipo)
+            expr = self.__parser_unary()
+            node = Node(NodeType.UNARY_OP)
+            node.valor = token
+            node.add_filho(expr)
 
-        while self.token_atual and self.token_atual.tipo == "COMMA":
-            self.match("COMMA")
-            self.parser_expression()
+            return node
+        else:
+            return self.__parser_factor()
 
-    def parser_relational_op(self):
-        if self.token_atual.tipo == "LESS":
-            self.match("LESS")
-        elif self.token_atual.tipo == "GREATER":
-            self.match("GREATER")
-        elif self.token_atual.tipo == "EQUAL":
-            self.match("EQUAL")
-        elif self.token_atual.tipo == "NOT_EQUAL":
-            self.match("NOT_EQUAL")
-        elif self.token_atual.tipo == "LESS_EQUAL":
-            self.match("LESS_EQUAL")
-        elif self.token_atual.tipo == "GREATER_EQUAL":
-            self.match("GREATER_EQUAL")
+    def __parser_sub_expression(self) -> Node:
+        self.__match(TokenType.LPAREN)
+        node = self.__parser_expression()
+        self.__match(TokenType.RPAREN)
+        return node
 
-    def parser_aditive_op(self):
-        if self.token_atual.tipo == "PLUS":
-            self.match("PLUS")
-        elif self.token_atual.tipo == "MINUS":
-            self.match("MINUS")
-        elif self.token_atual.tipo == "OR":
-            self.match("OR")
+    def __parser_function_call(self) -> Node:
+        node = Node(NodeType.FUNCTION_CALL)
 
-    def parser_multiplicative_op(self):
-        if self.token_atual.tipo == "MULTIPLY":
-            self.match("MULTIPLY")
-        elif self.token_atual.tipo == "DIVIDE":
-            self.match("DIVIDE")
-        elif self.token_atual.tipo == "AND":
-            self.match("AND")
-    
-    def parser_identifier(self):
-        self.match("IDENTIFIER")
+        node.add_filho(self.__parser_identifier())
 
-    def parser_string_literal(self):
-        self.match("STRING_LITERAL")
+        self.__match(TokenType.LPAREN)
+        if self.__token_atual and self.__token_atual.tipo != TokenType.RPAREN:
+            node.add_filho(self.__parser_actual_params())
+        self.__match(TokenType.RPAREN)
 
-    def parser_literal(self):
-        if self.token_atual.tipo in ["INTEGER_LITERAL", "REAL_LITERAL", "BOOL_LITERAL"]:
-            self.match(self.token_atual.tipo)
+        return node
 
-        
+    def __parser_actual_params(self) -> Node:
+        node = Node(NodeType.ARG_LIST)
 
+        node.add_filho(self.__parser_expression())
+        while self.__token_atual and self.__token_atual.tipo == TokenType.COMMA:
+            self.__match(TokenType.COMMA)
+            node.add_filho(self.__parser_expression())
 
+        return node
+
+    """def parser_relational_op(self) -> Node:
+        node = Node(NodeType.BINARY_OP)
+        token = self.__token_atual
+
+        match token.tipo:
+            case TokenType.LESS:
+                self.__match(TokenType.LESS)
+            case TokenType.GREATER:
+                self.__match(TokenType.GREATER)
+            case TokenType.EQUAL:
+                self.__match(TokenType.EQUAL)
+            case TokenType.NOT_EQUAL:
+                self.__match(TokenType.NOT_EQUAL)
+            case TokenType.LESS_EQUAL:
+                self.__match(TokenType.LESS_EQUAL)
+            case TokenType.GREATER_EQUAL:
+                self.__match(TokenType.GREATER_EQUAL)
+            case _:
+                raise MiniLangSyntaxError(
+                    f"Operador relacional inválido: {token.tipo.name}", token.linha
+                )
+
+        node.valor = token
+        return node
+
+    def parser_aditive_op(self) -> Node:
+        node = Node(NodeType.BINARY_OP)
+        token = self.__token_atual
+
+        match token.tipo:
+            case TokenType.PLUS:
+                self.__match(TokenType.PLUS)
+            case TokenType.MINUS:
+                self.__match(TokenType.MINUS)
+            case TokenType.OR:
+                self.__match(TokenType.OR)
+            case _:
+                raise MiniLangSyntaxError(
+                    f"Operador aditivo inválido: {token.tipo.name}", token.linha
+                )
+        node.valor = token
+        return node
+
+    def parser_multiplicative_op(self) -> Node:
+        node = Node(NodeType.BINARY_OP)
+        token = self.__token_atual
+
+        match token.tipo:
+            case TokenType.MULTIPLY:
+                self.__match(TokenType.MULTIPLY)
+            case TokenType.DIVIDE:
+                self.__match(TokenType.DIVIDE)
+            case TokenType.AND:
+                self.__match(TokenType.AND)
+            case _:
+                raise MiniLangSyntaxError(
+                    f"Operador multiplicativo inválido: {token.tipo.name}", token.linha
+                )
+        node.valor = token
+        return node"""
+
+    def __parser_identifier(self):
+        node = Node(NodeType.IDENTIFIER)
+        token = self.__token_atual
+
+        self.__match(TokenType.IDENTIFIER)
+
+        node.valor = token
+        return node
+
+    def __parser_string_literal(self):
+        node = Node(NodeType.LITERAL)
+        token = self.__token_atual
+
+        self.__match(TokenType.STRING_LITERAL)
+
+        node.valor = token
+        return node
+
+    def __parser_literal(self) -> Node:
+        node = Node(NodeType.LITERAL)
+        token = self.__token_atual
+
+        if token.tipo in {
+            TokenType.INTEGER_LITERAL,
+            TokenType.REAL_LITERAL,
+            TokenType.BOOLEAN_LITERAL,
+        }:
+            self.__match(token.tipo)
+            node.valor = token
+            return node
+        else:
+            raise MiniLangSyntaxError(
+                f"Literal inválido: {token.tipo.name}", token.linha
+            )

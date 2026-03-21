@@ -5,6 +5,7 @@ class TokenType(str, Enum):
     DEF = "DEF"
     WHILE = "WHILE"
     IF = "IF"
+    ELSE = "ELSE"
     RETURN = "RETURN"
     PRINT = "PRINT"
     INT_TYPE = "INT_TYPE"
