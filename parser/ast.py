@@ -1,5 +1,5 @@
 from .node import Node
-from typing import Optional
+import json
 
 
 class AST:
@@ -27,3 +27,20 @@ class AST:
             is_last_child = i == len(filhos) - 1
             new_prefix = prefix + ("    " if is_last else "│   ")
             self.__print_node(filho, new_prefix, is_last_child)
+
+    def save_tree(self, path: str) -> None:
+        try:
+            ast_dict = self.__node_to_dict(self.raiz)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(ast_dict, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"Erro ao salvar AST: {e}")
+
+    def __node_to_dict(self, node: Node) -> dict:
+        if node is None:
+            return None
+        return {
+            "tipo": node.tipo,
+            "valor": node.valor.to_dict() if node.valor else None,
+            "filhos": [self.__node_to_dict(filho) for filho in node.filhos],
+        }

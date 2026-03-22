@@ -21,6 +21,14 @@ class Lexer:
         for token in self._tokens:
             print(token)
 
+    def saveTokens(self, path) -> None:
+        try:
+            with open(path, "w", encoding="utf-8") as f:
+                for token in self._tokens:
+                    f.write(f"{token}\n")
+        except IOError as e:
+            print(f"Erro ao salvar tokens: {e}")
+
     # consome próximo caractere
     def __avancar(self) -> None:
         self.__pos += 1

@@ -23,3 +23,11 @@ class Token:
 
     def __str__(self) -> str:
         return f"<{self.__tipo.name}, {self.__valor}>"
+
+    def to_dict(self) -> dict:
+        return {
+            "tipo": self.tipo.name,
+            "valor": self.valor,
+            "linha": self.linha
+        }
+    
