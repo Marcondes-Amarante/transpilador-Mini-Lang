@@ -3,7 +3,6 @@ from parser import Parser, MiniLangSyntaxError
 from semantic import Semantic, SemanticError, CGenerator
 
 from pathlib import Path
-import os
 import sys
 
 ARTIFACTS_FOLDER = Path("./artifacts")
