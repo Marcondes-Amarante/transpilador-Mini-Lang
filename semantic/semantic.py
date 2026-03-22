@@ -1,39 +1,39 @@
 from lexer import TokenType
-from parser import AST
+from parser import AST, Node
 from .semantic_error import SemanticError
+
 
 class Semantic:
 
     def __init__(self, ast: AST):
         self.__ast: AST = ast
-        #lista contendo tabela de símbolos para escopos
-        #o primeiro item é a tabela do escopo global, e a última a do escopo atual
+        # lista contendo tabela de símbolos para escopos
+        # o primeiro item é a tabela do escopo global, e a última a do escopo atual
         self.scope = [{}]
         self.visita(ast.raiz)
-        
 
-    #retorna o método do analisador semantico relativo ao tipo do no
-    def visita(self, No):
-            
-        tipoNo = f"visitor_{No.tipo.value}"
-        #print(f"[DEBUG] Visitando nó: {No.tipo} (procurando {tipoNo})")
+    # retorna o método do analisador semantico relativo ao tipo do no
+    def visita(self, No: Node):
+
+        tipoNo: str = f"visitor_{No.tipo.value}"
+        # print(f"[DEBUG] Visitando nó: {No.tipo} (procurando {tipoNo})")
         metodo = getattr(self, tipoNo, self.visita_padrao)
-        #print(f"[DEBUG] Método encontrado: {metodo.__name__}")
+        # print(f"[DEBUG] Método encontrado: {metodo.__name__}")
         return metodo(No)
 
-    #visita padrão para caso não exista visitor específico para o tipo do No
-    def visita_padrao(self, No):
-            
+    # visita padrão para caso não exista visitor específico para o tipo do No
+    def visita_padrao(self, No: Node):
+
         for filho in No.filhos:
             self.visita(filho)
 
-    #funções visitor para as regras da gramática
-    #ex: visitor_variable_decl()
-    #funções visitor vão adicionar coisas no escopo atual, verificar se objeto existe em algum escopo
-    #verificar tipo de expressão
+    # funções visitor para as regras da gramática
+    # ex: visitor_variable_decl()
+    # funções visitor vão adicionar coisas no escopo atual, verificar se objeto existe em algum escopo
+    # verificar tipo de expressão
 
-    def visitor_LITERAL(self, no):
-        token_tipo = no.valor.tipo
+    def visitor_LITERAL(self, no: Node) -> str:
+        token_tipo: TokenType = no.valor.tipo
 
         if token_tipo == TokenType.INTEGER_LITERAL:
             return "int"
@@ -46,21 +46,21 @@ class Semantic:
 
         return "void"
 
-    def visitor_IDENTIFIER(self, no):
-        nome_var = no.valor.valor
-        #print(f"[DEBUG] Procurando '{nome_var}' nos escopos: {self.scope}")
+    def visitor_IDENTIFIER(self, no: Node):
+        nome_var: str = no.valor.valor
+        # print(f"[DEBUG] Procurando '{nome_var}' nos escopos: {self.scope}")
 
         for escopo in reversed(self.scope):
             if nome_var in escopo:
                 return escopo[nome_var]
-        #print(f"[DEBUG] '{nome_var}' NÃO ENCONTRADA!")
+        # print(f"[DEBUG] '{nome_var}' NÃO ENCONTRADA!")
 
-        raise Exception(f"Variável '{nome_var}' não declarada")
+        raise SemanticError(f"Variável '{nome_var}' não declarada", -1)
 
-    def visitor_TYPE_STMT(self, no):
+    def visitor_TYPE_STMT(self, no: Node):
         return no.valor.valor
 
-    def visitor_VAR_DECL(self, no):
+    def visitor_VAR_DECL(self, no: Node):
         ident = no.filhos[0]
         tipo_node = no.filhos[1]
         expr = no.filhos[2]
@@ -70,31 +70,30 @@ class Semantic:
         tipo_expressao = self.visita(expr)
 
         if not self._sao_compativeis(tipo_declarado, tipo_expressao):
-            raise Exception(
-                f"[Linha {ident.valor.linha}] "
-                f"Erro: {tipo_declarado} != {tipo_expressao}"
+            raise SemanticError(
+                f"Erro: {tipo_declarado} != {tipo_expressao}", ident.valor.linha
             )
 
         self.scope[-1][nome_var] = tipo_declarado
 
-    def visitor_ASSIGN_STMT(self, no):
+    def visitor_ASSIGN_STMT(self, no: Node):
         ident = no.filhos[0]
         expr = no.filhos[1]
 
         nome_var = ident.valor.valor
-        #print(f"[DEBUG] ASSIGN_STMT para '{nome_var}'") 
+        # print(f"[DEBUG] ASSIGN_STMT para '{nome_var}'")
         tipo_variavel = self.visita(ident)
         tipo_expressao = self.visita(expr)
 
-        #print(f"[DEBUG] Tipo de '{nome_var}': {tipo_variavel}, Tipo da expr: {tipo_expressao}")
+        # print(f"[DEBUG] Tipo de '{nome_var}': {tipo_variavel}, Tipo da expr: {tipo_expressao}")
 
         if not self._sao_compativeis(tipo_variavel, tipo_expressao):
-            raise Exception(
-                f"[Linha {ident.valor.linha}] "
-                f"Erro: não pode atribuir {tipo_expressao} em {tipo_variavel}"
+            raise SemanticError(
+                f"Erro: não pode atribuir {tipo_expressao} em {tipo_variavel}",
+                ident.valor.linha,
             )
 
-    def visitor_BINARY_OP(self, no):
+    def visitor_BINARY_OP(self, no: Node):
         esq = no.filhos[0]
         dir = no.filhos[1]
 
@@ -112,9 +111,8 @@ class Semantic:
                 return "int"
             if tipo_esq in ["int", "real"] and tipo_dir in ["int", "real"]:
                 return "real"
-            raise Exception(
-                f"[Linha {no.valor.linha}] "
-                f"Operação inválida: {tipo_esq} {op.name} {tipo_dir}"
+            raise SemanticError(
+                f"Operação inválida: {tipo_esq} {op.name} {tipo_dir}", no.valor.linha
             )
 
         if op in {
@@ -129,59 +127,50 @@ class Semantic:
                 return "bool"
             if tipo_esq in ["int", "real"] and tipo_dir in ["int", "real"]:
                 return "bool"
-            raise Exception(
-                f"[Linha {no.valor.linha}] Comparação inválida"
-            )
+            raise SemanticError(f"Comparação inválida", no.valor.tipo)
 
         if op in {TokenType.AND, TokenType.OR}:
             if tipo_esq == "bool" and tipo_dir == "bool":
                 return "bool"
-            raise Exception(
-                f"[Linha {no.valor.linha}] Operação lógica inválida"
-            )
+            raise SemanticError(f"Operação lógica inválida", no.valor.linha)
 
-    def visitor_UNARY_OP(self, no):
+    def visitor_UNARY_OP(self, no: Node):
         expr = no.filhos[0]
         tipo = self.visita(expr)
         op = no.valor.tipo
 
         if op == TokenType.NOT:
             if tipo != "bool":
-                raise Exception(f"[Linha {no.valor.linha}] NOT precisa de bool")
+                raise SemanticError(f"NOT precisa de bool", no.valor.linha)
             return "bool"
 
         if op in {TokenType.PLUS, TokenType.MINUS}:
             if tipo in ["int", "real"]:
                 return tipo
-            raise Exception(f"[Linha {no.valor.linha}] Operador inválido")
+            raise SemanticError(f"Operador inválido", no.valor.linha)
 
-
-    def visitor_IF_STMT(self, no):
+    def visitor_IF_STMT(self, no: Node):
         cond = no.filhos[0]
         bloco_if = no.filhos[1]
 
         tipo_cond = self.visita(cond)
 
         if tipo_cond != "bool":
-            raise Exception(
-                f"[Linha {cond.valor.linha}] IF precisa de bool"
-            )
+            raise SemanticError(f"IF precisa de bool", no.valor.linha)
 
         self.visita(bloco_if)
 
         if len(no.filhos) > 2:
             self.visita(no.filhos[2])
 
-    def visitor_WHILE_STMT(self, no):
+    def visitor_WHILE_STMT(self, no: Node):
         cond = no.filhos[0]
         bloco = no.filhos[1]
 
         tipo_cond = self.visita(cond)
 
         if tipo_cond != "bool":
-            raise Exception(
-                f"[Linha {cond.valor.linha}] WHILE precisa de bool"
-            )
+            raise SemanticError(f"WHILE precisa de bool", no.valor.linha)
 
         self.visita(bloco)
 
@@ -194,7 +183,7 @@ class Semantic:
 
         self.scope[-1][nome_funcao] = tipo_retorno
 
-        self.scope.append({})  
+        self.scope.append({})
 
         if len(no.filhos) > 3:
             param_list = no.filhos[1]
