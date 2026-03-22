@@ -1,7 +1,11 @@
 from lexer import Lexer, LexicalError
 from parser import Parser, MiniLangSyntaxError
 from semantic import AnalisadorSemantico
+from C_generator import CGenerator
+import os
 import sys
+
+
 
 
 def main():
@@ -13,7 +17,7 @@ def main():
     codigo_fonte: str = carregar_arquivo(caminho)
     
     if not codigo_fonte:
-        raise 
+        raise Exception(f"Arquivo {caminho} não encontrado ou vazio.")
     
     try:
     
@@ -23,7 +27,19 @@ def main():
         # parser.ast.print_tree()
         analisador_semantico = AnalisadorSemantico()
         analisador_semantico.visita(parser.ast.raiz)
-        print("\n>>> Sucesso: Código léxico, sintático e tipos validados!")
+        #print("\n>>> Sucesso: Código léxico, sintático e tipos validados!")
+        print("\n ✓ Códigos léxico, sintático e tipos validados!")
+        print("\n Gerando código C... \n")
+        gerador = CGenerator()
+        codigo_c = gerador.generate(parser.ast.raiz)
+
+        nome_arquivo_saída = os.path.splitext(caminho)[0]+".c"
+        with open(nome_arquivo_saída, "w", encoding = "utf-8") as f: 
+            f.write(codigo_c)
+
+        print(f"✓ Código C gerado em: {nome_arquivo_saída}")
+        print("\n --- CÓDIGO C GERADO --- \n")
+        print(codigo_c)
     except LexicalError as e:
         print(e)
     except MiniLangSyntaxError as e:
@@ -32,9 +48,11 @@ def main():
         print(f"Erro Semântico: {e}")
 
 
+
+
 def carregar_arquivo(caminho_codigo) -> str:
     try:
-        with open(caminho_codigo, "r", encoding="utf=8") as codigo_fonte:
+        with open(caminho_codigo, "r", encoding="utf-8") as codigo_fonte:
             return codigo_fonte.read()
     except FileNotFoundError:
         print("arquivo especificado não encontrado")

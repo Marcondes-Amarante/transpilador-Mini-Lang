@@ -1,3 +1,5 @@
+from lexer.token.token_type import TokenType
+
 class AnalisadorSemantico:
 
     def __init__(self):
