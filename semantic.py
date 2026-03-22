@@ -24,7 +24,7 @@ class AnalisadorSemantico:
     #funções visitor vão adicionar coisas no escopo atual, verificar se objeto existe em algum escopo
     #verificar tipo de expressão
 
-   def visitor_LITERAL(self, no):
+    def visitor_LITERAL(self, no):
         token_tipo = no.valor.tipo
 
         if token_tipo == TokenType.INTEGER_LITERAL:

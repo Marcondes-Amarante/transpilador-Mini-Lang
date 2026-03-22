@@ -1,0 +1,7 @@
+var x : int = 5;
+var y : real = 2.5;
+
+set x = x + 2;
+set y = x + y;
+
+print x;
