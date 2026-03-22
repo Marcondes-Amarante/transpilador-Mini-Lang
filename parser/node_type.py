@@ -29,4 +29,4 @@ class NodeType(str, Enum):
     IDENTIFIER = "IDENTIFIER"
     LITERAL = "LITERAL"
 
-    TYPE_STMT = "TYPE"
+    TYPE_STMT = "TYPE_STMT"

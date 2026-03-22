@@ -7,6 +7,7 @@ class CGenerator:
         self.code_func = []
         self.global_vars = {}
         self.func = {}
+        self.main_body = []
         self.indent = 0 
 
     def generate(self, raiz: Node) -> str: 
@@ -32,12 +33,13 @@ class CGenerator:
 ## "VISITORS"
 
     def visit_PROGRAM(self, node: Node) -> str: 
-        result = []
         for son in node.filhos: 
-            r = self.visit(son)
-            if r:
-                result.append(r)
-        return "\n".join(result)
+            codigo = self.visit(son)
+            # Se retorna código e não é função, adiciona ao main
+            if codigo and codigo.strip():
+                self.main_body.append(codigo)
+        return ""
+
     
     def visit_BLOCK(self, node: Node) -> str: 
         result = [] 
@@ -199,7 +201,7 @@ class CGenerator:
         if type_token == TokenType.STRING_LITERAL: 
             return value 
         elif type_token == TokenType.BOOLEAN_LITERAL: 
-            return "true" if value.lower() == "true" else "false"
+            return "1" if value.lower() == "true" else "0"
         else: 
             return str(value)
         
@@ -274,6 +276,9 @@ class CGenerator:
         resultado.extend(self.code_func)
 
         resultado.append("int main() {")
+        for linha_codigo in self.main_body:
+            self.indent = 1
+            resultado.append(f"{self._indent()}{linha_codigo}")
         resultado.append("    return 0;")
         resultado.append("}")
         
