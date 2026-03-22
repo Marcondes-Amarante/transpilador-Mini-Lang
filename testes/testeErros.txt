@@ -1,5 +1,5 @@
 # 1. Erro de Símbolo Inválido (O alfabeto da Mini-Lang não possui @ ou $)
-#var email: string = "user@ufca.edu.br"; 
+#var emai@l: string = "user@ufca.edu.br"; 
 set preco = 100;
 
 # 2. Erro de Número Real Malformado (Ponto sem dígitos depois)

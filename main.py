@@ -1,8 +1,9 @@
 from lexer import Lexer, LexicalError
 from parser import Parser, MiniLangSyntaxError
-from semantic import AnalisadorSemantico, SemanticError
+from semantic import Semantic, SemanticError, CGenerator
 
 from pathlib import Path
+import os
 import sys
 
 ARTIFACTS_FOLDER = Path("./artifacts")
@@ -30,9 +31,11 @@ def main():
 
         lexer: Lexer = lexer_analysis(codigo_fonte, save_flag, print_flag)
         parser: Parser = parser_analysis(lexer, save_flag, print_flag)
+        Semantic(parser.ast)
 
+        print("\n ✓ Códigos léxico, sintático e tipos validados!")
 
-        print("\n>>> Sucesso: Código léxico, sintático e tipos validados!")
+        print_c_code_menu(parser)
     except LexicalError as e:
         print(e)
     except MiniLangSyntaxError as e:
@@ -65,6 +68,43 @@ def parser_analysis(lexer: Lexer, save_flag=False, print_flag=False) -> Parser:
         output_file = ARTIFACTS_FOLDER / f"{file_name}_AST.json"
         parser.ast.save_tree(output_file)
     return parser
+
+
+def print_c_code_menu(parser: Parser):
+    print("\nDeseja gerar o equivalente do código em C?")
+    print("1. Printar e salvar")
+    print("2. Apenas printar")
+    print("3. Apenas salvar")
+    print("4. Não")
+
+    while True:
+        op_input = input(">> ").strip()
+        if op_input.isdigit():
+            op = int(op_input)
+            if 1 <= op <= 4:
+                break
+        print("Opção inválida. Digite um número de 1 a 4.")
+
+    save_flag, print_flag = False, False
+    match op:
+        case 1:
+            save_flag, print_flag = True, True
+        case 2:
+            print_flag = True
+        case 3:
+            save_flag = True
+    if op != 4:
+        print("\nGerando código C...\n")
+        translate(parser, save_flag, print_flag)
+
+
+def translate(parser: Parser, save_flag=False, print_flag=False) -> None:
+    gerador = CGenerator(parser.ast)
+    if print_flag:
+        gerador.print_code()
+    if save_flag:
+        output_file = ARTIFACTS_FOLDER / f"{file_name}_c_code.c"
+        gerador.save_code(output_file)
 
 
 def carregar_arquivo(caminho_codigo: Path) -> str:

@@ -1,6 +1,7 @@
 # Teste de variáveis e tipos
 var nota1: real = 8.5;
 var aprovado: bool = true;
+var x: real = 0; 
 
 # Teste de função e strings
 def verificar(n: int): void {
