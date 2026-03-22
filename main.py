@@ -1,5 +1,6 @@
 from lexer import Lexer, LexicalError
 from parser import Parser, MiniLangSyntaxError
+from semantic import AnalisadorSemantico
 import sys
 
 
@@ -12,19 +13,23 @@ def main():
     codigo_fonte: str = carregar_arquivo(caminho)
     
     if not codigo_fonte:
-        raise Exception("Arquivo fonte vazio")
+        raise 
     
     try:
+    
         lexer: Lexer = Lexer(codigo_fonte)
-        lexer.printTokens()
+        # lexer.printTokens()
         parser: Parser = Parser(lexer.tokens)
-        parser.ast.print_tree()
+        # parser.ast.print_tree()
+        analisador_semantico = AnalisadorSemantico()
+        analisador_semantico.visita(parser.ast.raiz)
+        print("\n>>> Sucesso: Código léxico, sintático e tipos validados!")
     except LexicalError as e:
         print(e)
     except MiniLangSyntaxError as e:
         print(e)
     except Exception as e:
-        print(e)
+        print(f"Erro Semântico: {e}")
 
 
 def carregar_arquivo(caminho_codigo) -> str:

@@ -26,6 +26,7 @@ class AnalisadorSemantico:
 
    def visitor_LITERAL(self, no):
         token_tipo = no.valor.tipo
+
         if token_tipo == TokenType.INTEGER_LITERAL:
             return "int"
         if token_tipo == TokenType.REAL_LITERAL:
@@ -34,58 +35,193 @@ class AnalisadorSemantico:
             return "bool"
         if token_tipo == TokenType.STRING_LITERAL:
             return "string"
+
         return "void"
 
     def visitor_IDENTIFIER(self, no):
-        nome_var = no.valor.valor 
-        if nome_var not in self.tabela_simbolos:
-            raise Exception(f"Erro Semântico (Linha {no.valor.linha}): Variável '{nome_var}' não declarada.")
-        return self.tabela_simbolos[nome_var]
+        nome_var = no.valor.valor
 
+        for escopo in reversed(self.scope):
+            if nome_var in escopo:
+                return escopo[nome_var]
+
+        raise Exception(f"Variável '{nome_var}' não declarada")
+
+    def visitor_TYPE_STMT(self, no):
+        return no.valor.valor
 
     def visitor_VAR_DECL(self, no):
-        nome_var = no.filhos.valor.valor
-        tipo_declarado = no.filhos.valor.valor 
-        tipo_expressao = self.visita(no.filhos)
+        ident = no.filhos[0]
+        tipo_node = no.filhos[1]
+        expr = no.filhos[2]
+
+        nome_var = ident.valor.valor
+        tipo_declarado = tipo_node.valor.valor
+        tipo_expressao = self.visita(expr)
 
         if not self._sao_compativeis(tipo_declarado, tipo_expressao):
-            raise Exception(f"Erro Semântico (Linha {no.filhos.valor.linha}): "
-                            f"Tentando inicializar '{nome_var}' ({tipo_declarado}) com {tipo_expressao}.")
+            raise Exception(
+                f"[Linha {ident.valor.linha}] "
+                f"Erro: {tipo_declarado} != {tipo_expressao}"
+            )
 
-        self.tabela_simbolos[nome_var] = tipo_declarado
+        self.scope[-1][nome_var] = tipo_declarado
 
     def visitor_ASSIGN_STMT(self, no):
-        nome_var = no.filhos.valor.valor
-        tipo_variavel = self.visitor_IDENTIFIER(no.filhos)
-        tipo_expressao = self.visita(no.filhos)
+        ident = no.filhos[0]
+        expr = no.filhos[1]
+
+        nome_var = ident.valor.valor
+        tipo_variavel = self.visita(ident)
+        tipo_expressao = self.visita(expr)
 
         if not self._sao_compativeis(tipo_variavel, tipo_expressao):
-            raise Exception(f"Erro Semântico (Linha {no.filhos.valor.linha}): "
-                            f"Não é possível atribuir {tipo_expressao} à variável '{nome_var}' ({tipo_variavel}).")
-
+            raise Exception(
+                f"[Linha {ident.valor.linha}] "
+                f"Erro: não pode atribuir {tipo_expressao} em {tipo_variavel}"
+            )
 
     def visitor_BINARY_OP(self, no):
-        tipo_esq = self.visita(no.filhos)
-        tipo_dir = self.visita(no.filhos)
-        op_token = no.valor.tipo
+        esq = no.filhos[0]
+        dir = no.filhos[1]
 
-        if op_token in {TokenType.PLUS, TokenType.MINUS, TokenType.MULTIPLY, TokenType.DIVIDE}:
+        tipo_esq = self.visita(esq)
+        tipo_dir = self.visita(dir)
+        op = no.valor.tipo
+
+        if op in {
+            TokenType.PLUS,
+            TokenType.MINUS,
+            TokenType.MULTIPLY,
+            TokenType.DIVIDE,
+        }:
             if tipo_esq == "int" and tipo_dir == "int":
                 return "int"
             if tipo_esq in ["int", "real"] and tipo_dir in ["int", "real"]:
                 return "real"
-            raise Exception(f"Erro (Linha {no.valor.linha}): Operação aritmética inválida entre {tipo_esq} e {tipo_dir}.")
+            raise Exception(
+                f"[Linha {no.valor.linha}] "
+                f"Operação inválida: {tipo_esq} {op.name} {tipo_dir}"
+            )
 
-        if op_token in {TokenType.EQUAL, TokenType.NOT_EQUAL, TokenType.LESS, TokenType.GREATER, TokenType.LESS_EQUAL, TokenType.GREATER_EQUAL}:
-            if tipo_esq == tipo_dir or (tipo_esq in ["int", "real"] and tipo_dir in ["int", "real"]):
+        if op in {
+            TokenType.EQUAL,
+            TokenType.NOT_EQUAL,
+            TokenType.LESS,
+            TokenType.GREATER,
+            TokenType.LESS_EQUAL,
+            TokenType.GREATER_EQUAL,
+        }:
+            if tipo_esq == tipo_dir:
                 return "bool"
-            raise Exception(f"Erro (Linha {no.valor.linha}): Comparação inválida entre {tipo_esq} e {tipo_dir}.")
+            if tipo_esq in ["int", "real"] and tipo_dir in ["int", "real"]:
+                return "bool"
+            raise Exception(
+                f"[Linha {no.valor.linha}] Comparação inválida"
+            )
 
-        if op_token in {TokenType.AND, TokenType.OR}:
+        if op in {TokenType.AND, TokenType.OR}:
             if tipo_esq == "bool" and tipo_dir == "bool":
                 return "bool"
-            raise Exception(f"Erro (Linha {no.valor.linha}): Operadores lógicos exigem booleanos.")
+            raise Exception(
+                f"[Linha {no.valor.linha}] Operação lógica inválida"
+            )
 
+    def visitor_UNARY_OP(self, no):
+        expr = no.filhos[0]
+        tipo = self.visita(expr)
+        op = no.valor.tipo
+
+        if op == TokenType.NOT:
+            if tipo != "bool":
+                raise Exception(f"[Linha {no.valor.linha}] NOT precisa de bool")
+            return "bool"
+
+        if op in {TokenType.PLUS, TokenType.MINUS}:
+            if tipo in ["int", "real"]:
+                return tipo
+            raise Exception(f"[Linha {no.valor.linha}] Operador inválido")
+
+
+    def visitor_IF_STMT(self, no):
+        cond = no.filhos[0]
+        bloco_if = no.filhos[1]
+
+        tipo_cond = self.visita(cond)
+
+        if tipo_cond != "bool":
+            raise Exception(
+                f"[Linha {cond.valor.linha}] IF precisa de bool"
+            )
+
+        self.visita(bloco_if)
+
+        if len(no.filhos) > 2:
+            self.visita(no.filhos[2])
+
+    def visitor_WHILE_STMT(self, no):
+        cond = no.filhos[0]
+        bloco = no.filhos[1]
+
+        tipo_cond = self.visita(cond)
+
+        if tipo_cond != "bool":
+            raise Exception(
+                f"[Linha {cond.valor.linha}] WHILE precisa de bool"
+            )
+
+        self.visita(bloco)
+
+    def visitor_FUNCTION_DECL(self, no):
+        ident = no.filhos[0]
+        nome_funcao = ident.valor.valor
+
+        tipo_node = no.filhos[-2]
+        tipo_retorno = tipo_node.valor.valor
+
+        self.scope[-1][nome_funcao] = tipo_retorno
+
+        self.scope.append({})  
+
+        if len(no.filhos) > 3:
+            param_list = no.filhos[1]
+            for param in param_list.filhos:
+                nome_param = param.filhos[0].valor.valor
+                tipo_param = param.filhos[1].valor.valor
+                self.scope[-1][nome_param] = tipo_param
+
+        self.visita(no.filhos[-1])
+
+        self.scope.pop()
+
+    def visitor_RETURN_STMT(self, no):
+        expr = no.filhos[0]
+        return self.visita(expr)
+
+    def visitor_FUNCTION_CALL(self, no):
+        nome = no.filhos[0].valor.valor
+        tipo_func = self.visita(no.filhos[0])
+
+        if len(no.filhos) > 1:
+            for arg in no.filhos[1].filhos:
+                self.visita(arg)
+
+        return tipo_func
+
+    def visitor_PROGRAM(self, no):
+        for filho in no.filhos:
+            self.visita(filho)
+
+    def visitor_BLOCK(self, no):
+        self.scope.append({})
+
+        for filho in no.filhos:
+            self.visita(filho)
+
+        self.scope.pop()
+
+    def visitor_PRINT_STMT(self, no):
+        self.visita(no.filhos[0])
 
     def _sao_compativeis(self, tipo_alvo, tipo_dado):
         if tipo_alvo == tipo_dado:
