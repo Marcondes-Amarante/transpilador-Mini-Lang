@@ -1,18 +1,24 @@
 from lexer import TokenType
+from parser import AST
+from .semantic_error import SemanticError
 
-class AnalisadorSemantico:
+class Semantic:
 
-    def __init__(self):
-        
+    def __init__(self, ast: AST):
+        self.__ast: AST = ast
         #lista contendo tabela de símbolos para escopos
         #o primeiro item é a tabela do escopo global, e a última a do escopo atual
         self.scope = [{}]
+        self.visita(ast.raiz)
+        
 
     #retorna o método do analisador semantico relativo ao tipo do no
     def visita(self, No):
             
-        tipoNo = f"visitor_{No.tipo}"
+        tipoNo = f"visitor_{No.tipo.value}"
+        #print(f"[DEBUG] Visitando nó: {No.tipo} (procurando {tipoNo})")
         metodo = getattr(self, tipoNo, self.visita_padrao)
+        #print(f"[DEBUG] Método encontrado: {metodo.__name__}")
         return metodo(No)
 
     #visita padrão para caso não exista visitor específico para o tipo do No
@@ -42,10 +48,12 @@ class AnalisadorSemantico:
 
     def visitor_IDENTIFIER(self, no):
         nome_var = no.valor.valor
+        #print(f"[DEBUG] Procurando '{nome_var}' nos escopos: {self.scope}")
 
         for escopo in reversed(self.scope):
             if nome_var in escopo:
                 return escopo[nome_var]
+        #print(f"[DEBUG] '{nome_var}' NÃO ENCONTRADA!")
 
         raise Exception(f"Variável '{nome_var}' não declarada")
 
@@ -74,8 +82,11 @@ class AnalisadorSemantico:
         expr = no.filhos[1]
 
         nome_var = ident.valor.valor
+        #print(f"[DEBUG] ASSIGN_STMT para '{nome_var}'") 
         tipo_variavel = self.visita(ident)
         tipo_expressao = self.visita(expr)
+
+        #print(f"[DEBUG] Tipo de '{nome_var}': {tipo_variavel}, Tipo da expr: {tipo_expressao}")
 
         if not self._sao_compativeis(tipo_variavel, tipo_expressao):
             raise Exception(
@@ -224,6 +235,19 @@ class AnalisadorSemantico:
 
     def visitor_PRINT_STMT(self, no):
         self.visita(no.filhos[0])
+
+    def visitor_PARAM(self, no):
+        """Visitor para nó PARAM (parâmetro de função)"""
+        return self.visita_padrao(no)
+
+    def visitor_PARAM_LIST(self, no):
+        """Visitor para nó PARAM_LIST (lista de parâmetros)"""
+        return self.visita_padrao(no)
+
+    def visitor_ARG_LIST(self, no):
+        """Visitor para nó ARG_LIST (lista de argumentos)"""
+        for arg in no.filhos:
+            self.visita(arg)
 
     def _sao_compativeis(self, tipo_alvo, tipo_dado):
         if tipo_alvo == tipo_dado:

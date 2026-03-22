@@ -1,2 +1,2 @@
-from .semantic_error import SemanticError
-from .semantic import AnalisadorSemantico
+from .semantic import Semantic, SemanticError
+from .C_generator import CGenerator
