@@ -102,6 +102,7 @@ def translate(parser: Parser, save_flag=False, print_flag=False) -> None:
     if print_flag:
         gerador.print_code()
     if save_flag:
+        ARTIFACTS_FOLDER.mkdir(parents=True, exist_ok=True)
         output_file = ARTIFACTS_FOLDER / f"{file_name}_c_code.c"
         gerador.save_code(output_file)
 
