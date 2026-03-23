@@ -1,0 +1,56 @@
+# ===============================
+# EXEMPLO COMPLETO - MINILANG
+# ===============================
+
+# função para calcular fatorial
+def fatorial(n : int) : int {
+    if (n == 0) {
+        return 1;
+    }
+    return n * fatorial(n - 1);
+}
+
+# função para verificar se número é par
+def ehPar(x : int) : bool {
+    if ((x / 2) * 2 == x) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+# função principal de teste
+def processar(valor : int) : int {
+    var resultado : int = 0;
+    var i : int = 0;
+
+    while (i < valor) {
+        if (ehPar(i)) {
+            set resultado = resultado + fatorial(i);
+        } else {
+            set resultado = resultado + i;
+        }
+
+        set i = i + 1;
+    }
+
+    return resultado;
+}
+
+# ===============================
+# PROGRAMA PRINCIPAL
+# ===============================
+
+var x : int = 5;
+var res : int = 0;
+var flag : bool = false;
+
+# chamada de função
+set res = processar(x);
+
+# expressão lógica
+if (res > 10 and not flag) {
+    print res;
+} else {
+    print x;
+}

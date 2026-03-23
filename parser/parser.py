@@ -91,6 +91,16 @@ class Parser:
                 return self.__parser_function_decl()
             case TokenType.LBRACE:
                 return self.__parser_block()
+            case TokenType.IDENTIFIER:
+                if self.__lookahead() and self.__lookahead().tipo == TokenType.LPAREN:
+                    node = self.__parser_function_call()
+                    self.__match(TokenType.SEMICOLON)
+                    return node
+                else:
+                    raise MiniLangSyntaxError(
+                        f"Statement inesperado: IDENTIFIER",
+                        self.__token_atual.linha,
+                    )
             case _:
                 raise MiniLangSyntaxError(
                     f"Statement inesperado: {self.__token_atual.tipo.name}",
@@ -167,7 +177,7 @@ class Parser:
         node = Node(NodeType.RETURN_STMT)
 
         self.__match(TokenType.RETURN)
-        node.add_filho(self.__parser_expression())        
+        node.add_filho(self.__parser_expression())
         node.valor = self.__token_atual
 
         return node
@@ -228,6 +238,34 @@ class Parser:
         return node
 
     def __parser_expression(self) -> Node:
+        left = self.__parser_and()
+        while self.__token_atual and self.__token_atual.tipo == TokenType.OR:
+            token = self.__token_atual
+            self.__match(token.tipo)
+
+            right = self.__parser_and()
+            node = Node(NodeType.BINARY_OP)
+            node.valor = token
+            node.add_filho(left)
+            node.add_filho(right)
+            left = node
+        return left
+    
+    def __parser_and(self) -> Node:
+        left = self.__parser_relational()
+        while self.__token_atual and self.__token_atual.tipo == TokenType.AND:
+            token = self.__token_atual
+            self.__match(token.tipo)
+
+            right = self.__parser_relational()
+            node = Node(NodeType.BINARY_OP)
+            node.valor = token
+            node.add_filho(left)
+            node.add_filho(right)
+            left = node
+        return left
+    
+    def __parser_relational(self) -> Node:
         left = self.__parser_simple_expression()
 
         relational_ops = {
@@ -238,6 +276,7 @@ class Parser:
             TokenType.LESS_EQUAL,
             TokenType.GREATER_EQUAL,
         }
+
         while self.__token_atual and self.__token_atual.tipo in relational_ops:
             token = self.__token_atual
             self.__match(token.tipo)
@@ -248,7 +287,6 @@ class Parser:
             node.add_filho(left)
             node.add_filho(right)
             left = node
-
         return left
 
     def __parser_simple_expression(self) -> Node:
@@ -257,7 +295,6 @@ class Parser:
         while self.__token_atual and self.__token_atual.tipo in {
             TokenType.PLUS,
             TokenType.MINUS,
-            TokenType.OR,
         }:
             token = self.__token_atual
             self.__match(token.tipo)
@@ -268,16 +305,13 @@ class Parser:
             node.add_filho(left)
             node.add_filho(right)
             left = node
-
         return left
 
     def __parser_term(self) -> Node:
         left = self.__parser_factor()
-
         while self.__token_atual and self.__token_atual.tipo in {
             TokenType.MULTIPLY,
             TokenType.DIVIDE,
-            TokenType.AND,
         }:
             token = self.__token_atual
             self.__match(token.tipo)
@@ -288,7 +322,6 @@ class Parser:
             node.add_filho(left)
             node.add_filho(right)
             left = node
-
         return left
 
     def __parser_factor(self) -> Node:

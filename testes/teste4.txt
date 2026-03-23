@@ -1,0 +1,98 @@
+# =========================================
+# PROGRAMA COMPLETO - MINILANG
+# =========================================
+
+# função recursiva: fatorial
+def fatorial(n : int) : int {
+    if (n == 0) {
+        return 1;
+    }
+    return n * fatorial(n - 1);
+}
+
+# função: potência simples
+def potencia(base : int, exp : int) : int {
+    var resultado : int = 1;
+    var i : int = 0;
+
+    while (i < exp) {
+        set resultado = resultado * base;
+        set i = i + 1;
+    }
+
+    return resultado;
+}
+
+# função lógica
+def ehPar(x : int) : bool {
+    if ((x / 2) * 2 == x) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+# função com múltiplas operações
+def calcular(a : int, b : int) : int {
+    var res : int = 0;
+
+    if (a > b) {
+        set res = a - b;
+    } else {
+        set res = b - a;
+    }
+
+    return res + fatorial(3);
+}
+
+# função void (efeito colateral)
+def mostrar(valor : int) : void {
+    print valor;
+}
+
+# =========================================
+# PROGRAMA PRINCIPAL
+# =========================================
+
+var x : int = 5;
+var y : int = 3;
+var z : int = 0;
+var resultado : int = 0;
+var flag : bool = false;
+
+# operações aritméticas
+set z = x + y * 2;
+
+# chamada de função
+set resultado = calcular(x, y);
+
+# uso de função dentro de expressão
+set resultado = resultado + potencia(2, 3);
+
+# expressão lógica completa
+if ((resultado > 10 and not flag) or ehPar(resultado)) {
+    print resultado;
+} else {
+    print x;
+}
+
+# loop com lógica interna
+var i : int = 0;
+
+while (i < 10) {
+    if (ehPar(i)) {
+        print i;
+    } else {
+        set resultado = resultado + i;
+    }
+
+    set i = i + 1;
+}
+
+# chamada de função void
+mostrar(resultado);
+
+# expressão com múltiplos operadores
+set resultado = (resultado + 10) * 2 - (x / y);
+
+print resultado;

@@ -191,9 +191,13 @@ class Semantic:
 
         tipo_node = no.filhos[-2]
         tipo_retorno = tipo_node.valor.valor
-
+        
         param_tipos = []
         param_names = set()
+
+        self.scope[-1][nome_funcao] = {"tipo": tipo_retorno, "params": param_tipos}
+        self.scope.append({})
+
         if len(no.filhos) > 3:
             param_list = no.filhos[1]
             for param in param_list.filhos:
@@ -207,8 +211,6 @@ class Semantic:
                     )
                 param_names.add(nome_param)
                 self.scope[-1][nome_param] = tipo_param
-        self.scope[-1][nome_funcao] = {"tipo": tipo_retorno, "params": param_tipos}
-        self.scope.append({})
 
         self.aux_curr_func_type = tipo_retorno
         self.visita(no.filhos[-1])
