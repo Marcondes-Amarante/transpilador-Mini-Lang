@@ -71,7 +71,7 @@ O transpilador utilizou a seguinte estrutura gramatical EBNF disponibilizada com
 < symbol > ::= <any - char - except - quote > ( Qualquer caractere imprimivel , exceto aspas )
 ```
 
-A fim de garantir a correta análise e geração da AST, efetuamos modificações pontuais nas regraa do `print_statement`, que modificamos para `print-statement = "print" (string_literal | expression) ;`, e do `unary`, que modificamos para `unary = ("+"|"-"|"not") unary | factor` 
+A fim de garantir a correta análise e geração da AST, foram realizadas modificações pontuais nas regras de `print_statement`, que passou a ser definida como `print_statement = "print" (string_literal | expression) ;`, e de `unary`, que foi ajustada para `unary = ("+" | "-" | "not") unary | factor`. Além disso, em relação à variável `statement`, foi adicionada a produção `statement = function_call`, com o objetivo de permitir chamadas de função isoladas, sem que o valor de retorno seja necessariamente atribuído a uma variável.
 
 ## 📐 Arquitetura
 
