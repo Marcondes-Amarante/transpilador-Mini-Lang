@@ -14,7 +14,7 @@ def main():
 
     args_list: list[str] = sys.argv
     if len(args_list) < 2:
-        print("Uso: python main.py <codigo_fonte>.txt [-save] [-print]")
+        print("Uso: python main.py <codigo_fonte>.txt [-save] [-print] [-nocode]")
         return
 
     try:
@@ -24,6 +24,7 @@ def main():
 
         save_flag = "-save" in args_list
         print_flag = "-print" in args_list
+        no_code = "-nocode" in args_list
 
         if save_flag:
             ARTIFACTS_FOLDER.mkdir(parents=True, exist_ok=True)
@@ -33,8 +34,8 @@ def main():
         Semantic(parser.ast)
 
         print("\n ✓ Códigos léxico, sintático e tipos validados!")
-
-        print_c_code_menu(parser)
+        if (not no_code):
+            print_c_code_menu(parser)
     except LexicalError as e:
         print(e)
     except MiniLangSyntaxError as e:

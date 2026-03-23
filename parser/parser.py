@@ -167,7 +167,8 @@ class Parser:
         node = Node(NodeType.RETURN_STMT)
 
         self.__match(TokenType.RETURN)
-        node.add_filho(self.__parser_expression())
+        node.add_filho(self.__parser_expression())        
+        node.valor = self.__token_atual
 
         return node
 

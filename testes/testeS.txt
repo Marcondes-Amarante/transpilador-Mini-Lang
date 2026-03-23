@@ -1,0 +1,78 @@
+# ===============================
+# ERROS SEMÂNTICOS - MINILANG
+# ===============================
+
+# 1. Variável não declarada
+# set x = 10;
+
+# 2. Declaração duplicada
+# var a : int = 5;
+# var a : int = 10;
+
+# 3. Tipo incompatível (int recebendo bool)
+# var b : int = true;
+
+# 4. Operação inválida (int + bool)
+# var c : int = 10 + false;
+
+
+# 6. Atribuição de tipo errado
+var flag : bool = true;
+#set flag = 123;
+
+# 7. Uso de variável inexistente em expressão
+# var e : int = f + 1;
+
+# 8. Divisão com tipo inválido
+# var g : int = 10 / false;
+
+# 9. Comparação inválida
+var h : int = 10;
+#var i : bool = h == true;
+
+# 10. Função inexistente
+# var resultado : int = soma(1, 2);
+
+# 11. Número errado de argumentos
+def soma(x : int, y : int) : int {
+    return x + y;
+}
+
+var j : int = soma(1, 2);
+
+# 12. Tipo de retorno incompatível
+def func() : int {
+    return 51;
+}
+
+# 13. Variável fora de escopo
+{
+    var k : int = 5;
+}
+# set k = 10;
+
+# 14. Redeclaração no mesmo escopo
+var m : int = 1;
+# var m : int = 2;
+
+# 15. Operação lógica inválida
+# var n : bool = 10 and 20;
+
+# 16. Uso de função antes da definição (dependendo da regra)
+# var z : int = calcular(5);
+
+def calcular(n : int) : int {
+    return n;
+}
+
+# 17. Retorno faltando (se obrigatório)
+def teste() : int {
+    var x : int = 10;
+    var y: bool = false;
+    return 15;
+}
+
+# 18. Parâmetro duplicado - OK
+def erro(x : int, h : int) : int {
+    return x;
+}
