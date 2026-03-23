@@ -4,7 +4,7 @@ O presente projeto foi desenvolvido sobre intuito de consolidar conhecimentos te
 
 O transpilador em questão recebe um arquivo .txt contendo o código fonte em mini lang e o traduz automaticamente para a linguagem de alto nível C, passando por todas as fases de análise e processamento, com execeção da geração da representação intermediária (aqui substituída pela geração do código final), compreendidas pela etapa de front-end de um compilador convencional. 
 
-## Estrutura gramatical
+## 📖 Estrutura gramatical
 
 O transpilador utilizou a seguinte estrutura gramatical EBNF disponibilizada como referência:
 
@@ -71,7 +71,9 @@ O transpilador utilizou a seguinte estrutura gramatical EBNF disponibilizada com
 < symbol > ::= <any - char - except - quote > ( Qualquer caractere imprimivel , exceto aspas )
 ```
 
-## Arquitetura
+A fim de garantir a correta análise e geração da AST, efetuamos modificações pontuais nas regraa do `print_statement`, que modificamos para `print-statement = "print" (string_literal | expression) ;`, e do `unary`, que modificamos para `unary = ("+"|"-"|"not") unary | factor` 
+
+## 📐 Arquitetura
 
 O transpilador segue a estrutura clássica da etapa de front-end de compiladores convencionais:
 
@@ -89,7 +91,7 @@ O transpilador segue a estrutura clássica da etapa de front-end de compiladores
 código Mini-Lang ──► Léxico ──► Sintático ──► Semântico ──► gerador de código ──► código final em C
 ```
 
-## Instruções de execução
+## 🚀 Instruções de execução
 
 ### 1. Crie um arquivo `.txt` contendo o código mini-lang que deseja compilar
 
@@ -100,8 +102,8 @@ python main.py codigo.txt -save -print
 ```
 onde:
 
-- `codigo.txt`: refere-se ao caminho relativo do codigo fonte mini-lang previamente criado, recomendamos aramzena-lo na pasta 'teste' para fins de melhor organização.
-- `-save`: é um parámetro opicional que cria uma pasta chamada 'artifacts', onde será armazenado um arquivo .txt da lista de tokens, um arquivo .json da AST gerada, e um arquivo .c referente ao código final gerado.
+- `codigo.txt`: refere-se ao caminho relativo do codigo fonte mini-lang previamente criado, recomendamos armazená-lo na pasta 'testes para fins de melhor organização.
+- `-save`: é um parâmetro opicional que cria uma pasta chamada 'artifacts', onde será armazenado um arquivo .txt da lista de tokens, um arquivo .json da AST gerada, e um arquivo .c referente ao código final gerado.
 - `-print`: é um parâmetro permite a exibição da lista de tokens e da AST no terminal durante a execução.
 
 ### 3. digite o número da opção desejada dentre as exibidas no terminal:
